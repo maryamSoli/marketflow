@@ -4,10 +4,8 @@ import {
   Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
   Snackbar,
   TextField,
   Typography,
@@ -20,138 +18,81 @@ import {
   useUpdateSellerProduct,
 } from '../../queries/useSellerProducts'
 import { useCategories } from '../../queries/useCategories'
+import ProductForm from '../../components/ProductForm'
 
 function SellerProducts() {
   const [search, setSearch] = useState('')
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingProduct, setEditingProduct] =
-    useState(null)
-
-  const [form, setForm] = useState({
-    title: '',
-    price: '',
-    stock: '',
-    category: '',
-  })
-
+  const [open, setOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState(null)
   const [message, setMessage] = useState('')
-  const [messageType, setMessageType] =
-    useState('success')
+  const [messageType, setMessageType] = useState('success')
 
   const {
-    data,
-    isPending,
+    data: products = [],
+    isLoading,
     isError,
-    error,
   } = useSellerProducts()
 
-  const { data: categories = [] } =
-    useCategories()
+  const { data: categories = [] } = useCategories()
 
   const addProduct = useAddSellerProduct()
   const updateProduct = useUpdateSellerProduct()
   const deleteProduct = useDeleteSellerProduct()
 
-  const products = data?.products || []
-
   const filteredProducts = useMemo(() => {
-    const text = search.toLowerCase().trim()
+    const value = search.toLowerCase().trim()
 
-    if (!text) {
+    if (!value) {
       return products
     }
 
     return products.filter(product =>
-      product.title.toLowerCase().includes(text) ||
-      product.category.toLowerCase().includes(text),
+      product.title.toLowerCase().includes(value),
     )
   }, [products, search])
 
   function openAddDialog() {
     setEditingProduct(null)
-
-    setForm({
-      title: '',
-      price: '',
-      stock: '',
-      category: '',
-    })
-
-    setDialogOpen(true)
+    setOpen(true)
   }
 
   function openEditDialog(product) {
     setEditingProduct(product)
-
-    setForm({
-      title: product.title,
-      price: product.price,
-      stock: product.stock,
-      category: product.category,
-    })
-
-    setDialogOpen(true)
+    setOpen(true)
   }
 
-  function handleChange(event) {
-    const { name, value } = event.target
+  function closeDialog() {
+    if (
+      addProduct.isPending ||
+      updateProduct.isPending
+    ) {
+      return
+    }
 
-    setForm(prev => ({
-      ...prev,
-      [name]: value,
-    }))
+    setOpen(false)
+    setEditingProduct(null)
   }
 
-  function showMessage(
-    text,
-    type = 'success',
-  ) {
+  function showMessage(text, type = 'success') {
     setMessage(text)
     setMessageType(type)
   }
 
-  function handleSubmit(event) {
-    event.preventDefault()
-
-    if (
-      !form.title.trim() ||
-      !form.price ||
-      !form.stock ||
-      !form.category
-    ) {
-      showMessage(
-        'Please fill in all fields.',
-        'error',
-      )
-
-      return
-    }
-
-    const productData = {
-      title: form.title.trim(),
-      price: Number(form.price),
-      stock: Number(form.stock),
-      category: form.category,
-    }
-
+  function handleSubmit(productData) {
     if (editingProduct) {
       updateProduct.mutate(
         {
           id: editingProduct.id,
-          ...productData,
+          product: productData,
         },
         {
           onSuccess: () => {
-            showMessage(
-              'Product updated successfully.',
-            )
-
-            setDialogOpen(false)
+            closeDialog()
+            showMessage('Product updated successfully.')
           },
-
-          onError: mutationError => {
+          onError: () => {
             showMessage(
-              mutationError.message,
+              'Failed to update product.',
               'error',
             )
           },
@@ -163,41 +104,34 @@ function SellerProducts() {
 
     addProduct.mutate(productData, {
       onSuccess: () => {
-        showMessage(
-          'Product added successfully.',
-        )
-
-        setDialogOpen(false)
+        closeDialog()
+        showMessage('Product added successfully.')
       },
-
-      onError: mutationError => {
+      onError: () => {
         showMessage(
-          mutationError.message,
+          'Failed to add product.',
           'error',
         )
       },
     })
   }
 
-  function handleDelete(product) {
+  function handleDelete(id) {
     const confirmed = window.confirm(
-      `Delete "${product.title}"?`,
+      'Are you sure you want to delete this product?',
     )
 
     if (!confirmed) {
       return
     }
 
-    deleteProduct.mutate(product.id, {
+    deleteProduct.mutate(id, {
       onSuccess: () => {
-        showMessage(
-          'Product deleted successfully.',
-        )
+        showMessage('Product deleted successfully.')
       },
-
-      onError: mutationError => {
+      onError: () => {
         showMessage(
-          mutationError.message,
+          'Failed to delete product.',
           'error',
         )
       },
@@ -219,7 +153,7 @@ function SellerProducts() {
     {
       field: 'category',
       headerName: 'Category',
-      width: 170,
+      width: 160,
     },
     {
       field: 'price',
@@ -237,11 +171,13 @@ function SellerProducts() {
       field: 'rating',
       headerName: 'Rating',
       width: 100,
+      valueFormatter: value =>
+        Number(value).toFixed(1),
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 180,
+      width: 190,
       sortable: false,
       filterable: false,
       renderCell: params => (
@@ -249,6 +185,8 @@ function SellerProducts() {
           sx={{
             display: 'flex',
             gap: 1,
+            alignItems: 'center',
+            height: '100%',
           }}
         >
           <Button
@@ -266,8 +204,9 @@ function SellerProducts() {
             color="error"
             variant="outlined"
             onClick={() =>
-              handleDelete(params.row)
+              handleDelete(params.row.id)
             }
+            disabled={deleteProduct.isPending}
           >
             Delete
           </Button>
@@ -276,51 +215,28 @@ function SellerProducts() {
     },
   ]
 
-  if (isPending) {
-    return (
-      <Typography>
-        Loading products...
-      </Typography>
-    )
-  }
-
-  if (isError) {
-    return (
-      <Alert severity="error">
-        {error.message}
-      </Alert>
-    )
-  }
-
   return (
     <Box>
       <Box
         sx={{
-          mb: 3,
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: {
-            xs: 'stretch',
-            sm: 'center',
-          },
-          flexDirection: {
-            xs: 'column',
-            sm: 'row',
-          },
+          alignItems: 'center',
           gap: 2,
+          mb: 3,
         }}
       >
         <Box>
-          <Typography variant="h4">
+          <Typography variant="h4" fontWeight={700}>
             My Products
           </Typography>
 
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ mt: 1 }}
+            sx={{ mt: 0.5 }}
           >
-            Manage your products
+            Manage your products and inventory
           </Typography>
         </Box>
 
@@ -342,21 +258,30 @@ function SellerProducts() {
         sx={{ mb: 2 }}
       />
 
+      {isError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Failed to load your products.
+        </Alert>
+      )}
+
       <Box
         sx={{
-          width: '100%',
           height: 600,
+          width: '100%',
+          backgroundColor: 'background.paper',
+          borderRadius: 2,
         }}
       >
         <DataGrid
           rows={filteredProducts}
           columns={columns}
-          pageSizeOptions={[10, 20, 50]}
+          loading={isLoading}
+          pageSizeOptions={[5, 10, 25]}
           initialState={{
             pagination: {
               paginationModel: {
-                page: 0,
                 pageSize: 10,
+                page: 0,
               },
             },
           }}
@@ -365,96 +290,29 @@ function SellerProducts() {
       </Box>
 
       <Dialog
-        open={dialogOpen}
-        onClose={() =>
-          setDialogOpen(false)
-        }
+        open={open}
+        onClose={closeDialog}
         fullWidth
         maxWidth="sm"
       >
-        <form onSubmit={handleSubmit}>
-          <DialogTitle>
-            {editingProduct
-              ? 'Edit Product'
-              : 'Add Product'}
-          </DialogTitle>
+        <DialogTitle>
+          {editingProduct
+            ? 'Edit Product'
+            : 'Add Product'}
+        </DialogTitle>
 
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Product name"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              margin="normal"
-            />
-
-            <TextField
-              fullWidth
-              label="Price"
-              name="price"
-              type="number"
-              value={form.price}
-              onChange={handleChange}
-              margin="normal"
-            />
-
-            <TextField
-              fullWidth
-              label="Stock"
-              name="stock"
-              type="number"
-              value={form.stock}
-              onChange={handleChange}
-              margin="normal"
-            />
-
-            <TextField
-              fullWidth
-              select
-              label="Category"
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              margin="normal"
-            >
-              {categories.map(category => (
-                <MenuItem
-                  key={category}
-                  value={category}
-                >
-                  {category}
-                </MenuItem>
-              ))}
-            </TextField>
-          </DialogContent>
-
-          <DialogActions>
-            <Button
-              onClick={() =>
-                setDialogOpen(false)
-              }
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={
-                addProduct.isPending ||
-                updateProduct.isPending
-              }
-            >
-              {addProduct.isPending ||
+        <DialogContent sx={{ pt: 2 }}>
+          <ProductForm
+            product={editingProduct}
+            categories={categories}
+            onSubmit={handleSubmit}
+            onCancel={closeDialog}
+            loading={
+              addProduct.isPending ||
               updateProduct.isPending
-                ? 'Saving...'
-                : editingProduct
-                  ? 'Update'
-                  : 'Add'}
-            </Button>
-          </DialogActions>
-        </form>
+            }
+          />
+        </DialogContent>
       </Dialog>
 
       <Snackbar
