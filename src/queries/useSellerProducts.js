@@ -1,110 +1,194 @@
-import { useMemo } from 'react'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useSelector } from 'react-redux'
 import {
-  useAdminProducts,
-  useAddProduct,
-  useUpdateProduct,
-  useDeleteProduct,
-} from './useAdminProducts'
+  addProduct,
+  deleteProduct,
+  getProducts,
+  updateProduct,
+} from '../services/productApi'
 import {
   ensureProductOwners,
-  setProductOwner,
   removeProductOwner,
+  setProductOwner,
 } from '../utils/sellerOwnership'
 
 export function useSellerProducts() {
-  const sellerId = useSelector(
-    state => state.auth.user?.id,
+  const user = useSelector(
+    state => state.auth.user,
   )
 
-  const query = useAdminProducts()
+  return useQuery({
+    queryKey: [
+      'sellerProducts',
+      user?.id,
+    ],
 
-  const sellerProducts = useMemo(() => {
-    if (!query.data || !sellerId) {
-      return []
-    }
+    queryFn: async () => {
+      if (!user?.id) {
+        return []
+      }
 
-    const allProducts = query.data.products || []
+      const data = await getProducts({
+        limit: 0,
+        skip: 0,
+      })
 
-    const owners = ensureProductOwners(
-      allProducts.map(product => product.id),
-      sellerId,
-    )
+      const products = data?.products || []
 
-    return allProducts.filter(
-      product => owners[product.id] === sellerId,
-    )
-  }, [query.data, sellerId])
+      const owners = ensureProductOwners(
+        products.map(
+          product => product.id,
+        ),
+        user.id,
+      )
 
-  return {
-    ...query,
-    data: query.data
-      ? {
-          ...query.data,
-          products: sellerProducts,
-          total: sellerProducts.length,
-        }
-      : undefined,
-  }
+      return products.filter(
+        product =>
+          owners[product.id] ===
+          user.id,
+      )
+    },
+
+    enabled: !!user?.id,
+  })
 }
 
 export function useAddSellerProduct() {
-  const sellerId = useSelector(
-    state => state.auth.user?.id,
+  const queryClient = useQueryClient()
+
+  const user = useSelector(
+    state => state.auth.user,
   )
 
-  const mutation = useAddProduct()
+  return useMutation({
+    mutationFn: addProduct,
 
-  function mutate(product, options = {}) {
-    mutation.mutate(product, {
-      ...options,
+    onSuccess: newProduct => {
+      if (user?.id) {
+        setProductOwner(
+          newProduct.id,
+          user.id,
+        )
+      }
 
-      onSuccess: newProduct => {
-        if (sellerId) {
-          setProductOwner(
-            newProduct.id,
-            sellerId,
-          )
-        }
+      queryClient.setQueryData(
+        [
+          'sellerProducts',
+          user?.id,
+        ],
+        oldProducts => [
+          ...(oldProducts || []),
+          newProduct,
+        ],
+      )
 
-        if (options.onSuccess) {
-          options.onSuccess(newProduct)
-        }
-      },
-    })
-  }
-
-  return {
-    ...mutation,
-    mutate,
-  }
+      queryClient.invalidateQueries({
+        queryKey: [
+          'sellerProducts',
+          user?.id,
+        ],
+      })
+    },
+  })
 }
 
 export function useUpdateSellerProduct() {
-  return useUpdateProduct()
+  const queryClient = useQueryClient()
+
+  const user = useSelector(
+    state => state.auth.user,
+  )
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      product,
+    }) =>
+      updateProduct(id, product),
+
+    onSuccess: updatedProduct => {
+      queryClient.setQueryData(
+        [
+          'sellerProducts',
+          user?.id,
+        ],
+        oldProducts =>
+          (oldProducts || []).map(
+            product =>
+              Number(product.id) ===
+              Number(updatedProduct.id)
+                ? {
+                    ...product,
+                    ...updatedProduct,
+                  }
+                : product,
+          ),
+      )
+
+      queryClient.setQueryData(
+        [
+          'product',
+          Number(updatedProduct.id),
+        ],
+        oldProduct => ({
+          ...(oldProduct || {}),
+          ...updatedProduct,
+        }),
+      )
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          'sellerProducts',
+          user?.id,
+        ],
+      })
+    },
+  })
 }
 
 export function useDeleteSellerProduct() {
-  const mutation = useDeleteProduct()
+  const queryClient = useQueryClient()
 
-  function mutate(productId, options = {}) {
-    mutation.mutate(productId, {
-      ...options,
+  const user = useSelector(
+    state => state.auth.user,
+  )
 
-      onSuccess: deletedProduct => {
-        removeProductOwner(
-          deletedProduct.id,
-        )
+  return useMutation({
+    mutationFn: deleteProduct,
 
-        if (options.onSuccess) {
-          options.onSuccess(deletedProduct)
-        }
-      },
-    })
-  }
+    onSuccess: deletedId => {
+      removeProductOwner(deletedId)
 
-  return {
-    ...mutation,
-    mutate,
-  }
+      queryClient.setQueryData(
+        [
+          'sellerProducts',
+          user?.id,
+        ],
+        oldProducts =>
+          (oldProducts || []).filter(
+            product =>
+              Number(product.id) !==
+              Number(deletedId),
+          ),
+      )
+
+      queryClient.removeQueries({
+        queryKey: [
+          'product',
+          Number(deletedId),
+        ],
+      })
+
+      queryClient.invalidateQueries({
+        queryKey: [
+          'sellerProducts',
+          user?.id,
+        ],
+      })
+    },
+  })
 }

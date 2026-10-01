@@ -46,7 +46,9 @@ function AdminProducts() {
   const updateProduct = useUpdateProduct()
   const deleteProduct = useDeleteProduct()
 
-  const products = data?.products || []
+  const products = Array.isArray(data)
+    ? data
+    : data?.products || []
 
   const filteredProducts = useMemo(() => {
     const text = search.toLowerCase().trim()
@@ -57,10 +59,10 @@ function AdminProducts() {
 
     return products.filter(product =>
       product.title
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(text) ||
       product.category
-        .toLowerCase()
+        ?.toLowerCase()
         .includes(text),
     )
   }, [products, search])
@@ -100,20 +102,20 @@ function AdminProducts() {
       updateProduct.mutate(
         {
           id: editingProduct.id,
-          ...productData,
+          product: productData,
         },
         {
           onSuccess: () => {
             showMessage(
               'Product updated successfully.',
             )
-
             closeDialog()
           },
 
           onError: mutationError => {
             showMessage(
-              mutationError.message,
+              mutationError.message ||
+                'Failed to update product.',
               'error',
             )
           },
@@ -128,13 +130,13 @@ function AdminProducts() {
         showMessage(
           'Product added successfully.',
         )
-
         closeDialog()
       },
 
       onError: mutationError => {
         showMessage(
-          mutationError.message,
+          mutationError.message ||
+            'Failed to add product.',
           'error',
         )
       },
@@ -159,7 +161,8 @@ function AdminProducts() {
 
       onError: mutationError => {
         showMessage(
-          mutationError.message,
+          mutationError.message ||
+            'Failed to delete product.',
           'error',
         )
       },
@@ -199,6 +202,10 @@ function AdminProducts() {
       field: 'rating',
       headerName: 'Rating',
       width: 100,
+      valueFormatter: value =>
+        value == null
+          ? '0.0'
+          : Number(value).toFixed(1),
     },
     {
       field: 'actions',
@@ -211,6 +218,8 @@ function AdminProducts() {
           sx={{
             display: 'flex',
             gap: 1,
+            alignItems: 'center',
+            height: '100%',
           }}
         >
           <Button
@@ -230,6 +239,7 @@ function AdminProducts() {
             onClick={() =>
               handleDelete(params.row)
             }
+            disabled={deleteProduct.isPending}
           >
             Delete
           </Button>
@@ -249,7 +259,8 @@ function AdminProducts() {
   if (isError) {
     return (
       <Alert severity="error">
-        {error.message}
+        {error?.message ||
+          'Failed to load products.'}
       </Alert>
     )
   }

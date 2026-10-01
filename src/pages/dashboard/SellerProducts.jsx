@@ -23,9 +23,11 @@ import ProductForm from '../../components/ProductForm'
 function SellerProducts() {
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState(null)
+  const [editingProduct, setEditingProduct] =
+    useState(null)
   const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState('success')
+  const [messageType, setMessageType] =
+    useState('success')
 
   const {
     data: products = [],
@@ -33,11 +35,14 @@ function SellerProducts() {
     isError,
   } = useSellerProducts()
 
-  const { data: categories = [] } = useCategories()
+  const { data: categories = [] } =
+    useCategories()
 
   const addProduct = useAddSellerProduct()
-  const updateProduct = useUpdateSellerProduct()
-  const deleteProduct = useDeleteSellerProduct()
+  const updateProduct =
+    useUpdateSellerProduct()
+  const deleteProduct =
+    useDeleteSellerProduct()
 
   const filteredProducts = useMemo(() => {
     const value = search.toLowerCase().trim()
@@ -47,7 +52,9 @@ function SellerProducts() {
     }
 
     return products.filter(product =>
-      product.title.toLowerCase().includes(value),
+      product.title
+        ?.toLowerCase()
+        .includes(value),
     )
   }, [products, search])
 
@@ -73,7 +80,10 @@ function SellerProducts() {
     setEditingProduct(null)
   }
 
-  function showMessage(text, type = 'success') {
+  function showMessage(
+    text,
+    type = 'success',
+  ) {
     setMessage(text)
     setMessageType(type)
   }
@@ -88,11 +98,15 @@ function SellerProducts() {
         {
           onSuccess: () => {
             closeDialog()
-            showMessage('Product updated successfully.')
-          },
-          onError: () => {
             showMessage(
-              'Failed to update product.',
+              'Product updated successfully.',
+            )
+          },
+
+          onError: mutationError => {
+            showMessage(
+              mutationError.message ||
+                'Failed to update product.',
               'error',
             )
           },
@@ -105,11 +119,15 @@ function SellerProducts() {
     addProduct.mutate(productData, {
       onSuccess: () => {
         closeDialog()
-        showMessage('Product added successfully.')
-      },
-      onError: () => {
         showMessage(
-          'Failed to add product.',
+          'Product added successfully.',
+        )
+      },
+
+      onError: mutationError => {
+        showMessage(
+          mutationError.message ||
+            'Failed to add product.',
           'error',
         )
       },
@@ -127,11 +145,15 @@ function SellerProducts() {
 
     deleteProduct.mutate(id, {
       onSuccess: () => {
-        showMessage('Product deleted successfully.')
-      },
-      onError: () => {
         showMessage(
-          'Failed to delete product.',
+          'Product deleted successfully.',
+        )
+      },
+
+      onError: mutationError => {
+        showMessage(
+          mutationError.message ||
+            'Failed to delete product.',
           'error',
         )
       },
@@ -172,7 +194,9 @@ function SellerProducts() {
       headerName: 'Rating',
       width: 100,
       valueFormatter: value =>
-        Number(value).toFixed(1),
+        value == null
+          ? '0.0'
+          : Number(value).toFixed(1),
     },
     {
       field: 'actions',
@@ -221,13 +245,23 @@ function SellerProducts() {
         sx={{
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
+          alignItems: {
+            xs: 'stretch',
+            sm: 'center',
+          },
+          flexDirection: {
+            xs: 'column',
+            sm: 'row',
+          },
           gap: 2,
           mb: 3,
         }}
       >
         <Box>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+          >
             My Products
           </Typography>
 

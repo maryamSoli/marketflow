@@ -1,45 +1,26 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import api from '../services/api'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import {
+  addProduct,
+  deleteProduct,
+  getProducts,
+  updateProduct,
+} from '../services/productApi'
 
-const ADMIN_PRODUCTS_KEY = ['admin-products']
-
-async function getAllProducts() {
-  const response = await api.get('/products', {
-    params: {
-      limit: 0,
-    },
+async function getAdminProducts() {
+  return getProducts({
+    limit: 0,
+    skip: 0,
   })
-
-  return response.data
-}
-
-async function addProduct(product) {
-  const response = await api.post('/products/add', product)
-
-  return response.data
-}
-
-async function updateProduct(product) {
-  const response = await api.put(`/products/${product.id}`, {
-    title: product.title,
-    price: product.price,
-    stock: product.stock,
-    category: product.category,
-  })
-
-  return response.data
-}
-
-async function deleteProduct(id) {
-  const response = await api.delete(`/products/${id}`)
-
-  return response.data
 }
 
 export function useAdminProducts() {
   return useQuery({
-    queryKey: ADMIN_PRODUCTS_KEY,
-    queryFn: getAllProducts,
+    queryKey: ['adminProducts'],
+    queryFn: getAdminProducts,
   })
 }
 
@@ -51,16 +32,33 @@ export function useAddProduct() {
 
     onSuccess: newProduct => {
       queryClient.setQueryData(
-        ADMIN_PRODUCTS_KEY,
-        oldData => ({
-          ...oldData,
-          products: [
+        ['adminProducts'],
+        oldData => {
+          const oldProducts = Array.isArray(
+            oldData,
+          )
+            ? oldData
+            : oldData?.products || []
+
+          const products = [
+            ...oldProducts,
             newProduct,
-            ...(oldData?.products || []),
-          ],
-          total: (oldData?.total || 0) + 1,
-        }),
+          ]
+
+          return {
+            ...(oldData &&
+            !Array.isArray(oldData)
+              ? oldData
+              : {}),
+            products,
+            total: products.length,
+          }
+        },
       )
+
+      queryClient.invalidateQueries({
+        queryKey: ['adminProducts'],
+      })
     },
   })
 }
@@ -69,23 +67,58 @@ export function useUpdateProduct() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: updateProduct,
+    mutationFn: ({
+      id,
+      product,
+    }) =>
+      updateProduct(id, product),
 
     onSuccess: updatedProduct => {
       queryClient.setQueryData(
-        ADMIN_PRODUCTS_KEY,
-        oldData => ({
-          ...oldData,
-          products: (oldData?.products || []).map(product =>
-            product.id === updatedProduct.id
-              ? {
-                  ...product,
-                  ...updatedProduct,
-                }
-              : product,
-          ),
+        ['adminProducts'],
+        oldData => {
+          const oldProducts = Array.isArray(
+            oldData,
+          )
+            ? oldData
+            : oldData?.products || []
+
+          const products =
+            oldProducts.map(product =>
+              Number(product.id) ===
+              Number(updatedProduct.id)
+                ? {
+                    ...product,
+                    ...updatedProduct,
+                  }
+                : product,
+            )
+
+          return {
+            ...(oldData &&
+            !Array.isArray(oldData)
+              ? oldData
+              : {}),
+            products,
+            total: products.length,
+          }
+        },
+      )
+
+      queryClient.setQueryData(
+        [
+          'product',
+          Number(updatedProduct.id),
+        ],
+        oldProduct => ({
+          ...(oldProduct || {}),
+          ...updatedProduct,
         }),
       )
+
+      queryClient.invalidateQueries({
+        queryKey: ['adminProducts'],
+      })
     },
   })
 }
@@ -96,20 +129,44 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: deleteProduct,
 
-    onSuccess: deletedProduct => {
+    onSuccess: deletedId => {
       queryClient.setQueryData(
-        ADMIN_PRODUCTS_KEY,
-        oldData => ({
-          ...oldData,
-          products: (oldData?.products || []).filter(
-            product => product.id !== deletedProduct.id,
-          ),
-          total: Math.max(
-            0,
-            (oldData?.total || 1) - 1,
-          ),
-        }),
+        ['adminProducts'],
+        oldData => {
+          const oldProducts = Array.isArray(
+            oldData,
+          )
+            ? oldData
+            : oldData?.products || []
+
+          const products =
+            oldProducts.filter(
+              product =>
+                Number(product.id) !==
+                Number(deletedId),
+            )
+
+          return {
+            ...(oldData &&
+            !Array.isArray(oldData)
+              ? oldData
+              : {}),
+            products,
+            total: products.length,
+          }
+        },
       )
+
+      queryClient.removeQueries({
+        queryKey: [
+          'product',
+          Number(deletedId),
+        ],
+      })
+
+      queryClient.invalidateQueries({
+        queryKey: ['adminProducts'],
+      })
     },
   })
 }
