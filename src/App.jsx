@@ -10,13 +10,18 @@ import ProductDetails from './pages/customer/ProductDetails'
 import Cart from './pages/customer/Cart'
 import Checkout from './pages/customer/Checkout'
 import OrderSuccess from './pages/customer/OrderSuccess'
+import Orders from './pages/customer/Orders'
+import OrderDetails from './pages/customer/OrderDetails'
+import Wishlist from './pages/customer/Wishlist'
+
+import Profile from './pages/account/Profile'
 
 import Login from './pages/auth/Login'
 
 import Dashboard from './pages/dashboard/Dashboard'
 import SellerDashboard from './pages/dashboard/SellerDashboard'
 import AdminProducts from './pages/dashboard/AdminProducts'
-import Orders from './pages/dashboard/Orders'
+import OrdersAdmin from './pages/dashboard/Orders'
 import Users from './pages/dashboard/Users'
 import SellerProducts from './pages/dashboard/SellerProducts'
 import SellerOrders from './pages/dashboard/SellerOrders'
@@ -61,11 +66,41 @@ function App() {
           path="/order-success"
           element={<OrderSuccess />}
         />
+
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['customer']}
+            />
+          }
+        >
+          <Route
+            path="/orders"
+            element={<Orders />}
+          />
+
+          <Route
+            path="/orders/:id"
+            element={<OrderDetails />}
+          />
+
+          <Route
+            path="/wishlist"
+            element={<Wishlist />}
+          />
+
+          <Route
+            path="/profile"
+            element={<Profile />}
+          />
+        </Route>
       </Route>
 
       <Route
         element={
-          <ProtectedRoute allowedRoles={['admin']} />
+          <ProtectedRoute
+            allowedRoles={['admin']}
+          />
         }
       >
         <Route element={<DashboardLayout />}>
@@ -81,19 +116,26 @@ function App() {
 
           <Route
             path="/admin/orders"
-            element={<Orders />}
+            element={<OrdersAdmin />}
           />
 
           <Route
             path="/admin/users"
             element={<Users />}
           />
+
+          <Route
+            path="/admin/profile"
+            element={<Profile />}
+          />
         </Route>
       </Route>
 
       <Route
         element={
-          <ProtectedRoute allowedRoles={['seller']} />
+          <ProtectedRoute
+            allowedRoles={['seller']}
+          />
         }
       >
         <Route element={<SellerLayout />}>
@@ -110,6 +152,11 @@ function App() {
           <Route
             path="/seller/orders"
             element={<SellerOrders />}
+          />
+
+          <Route
+            path="/seller/profile"
+            element={<Profile />}
           />
         </Route>
       </Route>

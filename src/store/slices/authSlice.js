@@ -1,9 +1,24 @@
 import { createSlice } from '@reduxjs/toolkit'
 
-const savedUser = localStorage.getItem('user')
+function getSavedUser() {
+  const savedUser = localStorage.getItem('user')
+
+  if (!savedUser) {
+    return null
+  }
+
+  try {
+    return JSON.parse(savedUser)
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
+const savedUser = getSavedUser()
 
 const initialState = {
-  user: savedUser ? JSON.parse(savedUser) : null,
+  user: savedUser,
   isLoggedIn: !!savedUser,
 }
 
@@ -21,6 +36,22 @@ const authSlice = createSlice({
       )
     },
 
+    updateProfile(state, action) {
+      if (!state.user) {
+        return
+      }
+
+      state.user = {
+        ...state.user,
+        ...action.payload,
+      }
+
+      localStorage.setItem(
+        'user',
+        JSON.stringify(state.user),
+      )
+    },
+
     logout(state) {
       state.user = null
       state.isLoggedIn = false
@@ -30,6 +61,10 @@ const authSlice = createSlice({
   },
 })
 
-export const { login, logout } = authSlice.actions
+export const {
+  login,
+  updateProfile,
+  logout,
+} = authSlice.actions
 
 export default authSlice.reducer

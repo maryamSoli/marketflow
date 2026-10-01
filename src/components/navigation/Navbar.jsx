@@ -1,7 +1,11 @@
 import { Link } from 'react-router'
-import { Menu, ShoppingCart } from 'lucide-react'
+import {
+  Menu,
+  ShoppingCart,
+} from 'lucide-react'
 import { useSelector } from 'react-redux'
 import UserMenu from './UserMenu'
+import NotificationBell from './NotificationBell'
 
 function Navbar({ onMenuClick }) {
   const cartItems = useSelector(
@@ -9,7 +13,8 @@ function Navbar({ onMenuClick }) {
   )
 
   const cartCount = cartItems.reduce(
-    (total, item) => total + item.quantity,
+    (total, item) =>
+      total + item.quantity,
     0,
   )
 
@@ -31,7 +36,9 @@ function Navbar({ onMenuClick }) {
         </Link>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        <NotificationBell />
+
         <Link
           to="/cart"
           className="relative rounded-lg p-2 hover:bg-gray-100"

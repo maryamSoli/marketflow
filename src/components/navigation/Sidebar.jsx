@@ -12,7 +12,9 @@ function Sidebar({ open, onClose }) {
 
       <aside
         className={`fixed left-0 top-0 z-50 h-full w-64 bg-white p-5 shadow-lg transition-transform lg:static lg:translate-x-0 lg:shadow-none ${
-          open ? 'translate-x-0' : '-translate-x-full'
+          open
+            ? 'translate-x-0'
+            : '-translate-x-full'
         }`}
       >
         <div className="mb-8 text-xl font-bold">
@@ -22,6 +24,7 @@ function Sidebar({ open, onClose }) {
         <nav className="flex flex-col gap-2">
           <Link
             to="/"
+            onClick={onClose}
             className="rounded px-3 py-2 hover:bg-gray-100"
           >
             Home
@@ -29,6 +32,7 @@ function Sidebar({ open, onClose }) {
 
           <Link
             to="/products"
+            onClick={onClose}
             className="rounded px-3 py-2 hover:bg-gray-100"
           >
             Products
@@ -36,6 +40,7 @@ function Sidebar({ open, onClose }) {
 
           <Link
             to="/orders"
+            onClick={onClose}
             className="rounded px-3 py-2 hover:bg-gray-100"
           >
             Orders
@@ -43,9 +48,18 @@ function Sidebar({ open, onClose }) {
 
           <Link
             to="/wishlist"
+            onClick={onClose}
             className="rounded px-3 py-2 hover:bg-gray-100"
           >
             Wishlist
+          </Link>
+
+          <Link
+            to="/profile"
+            onClick={onClose}
+            className="rounded px-3 py-2 hover:bg-gray-100"
+          >
+            Profile
           </Link>
         </nav>
       </aside>

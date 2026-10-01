@@ -1,50 +1,67 @@
-import { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { login } from '../../store/slices/authSlice'
+import { loginSchema } from '../../validation/schemas'
 
 function Login() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const {
+    register,
+    handleSubmit,
+    formState: {
+      errors,
+      isSubmitting,
+    },
+    setError,
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    mode: 'onSubmit',
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  })
 
-  function handleSubmit(event) {
-    event.preventDefault()
-
+  function handleLogin(data) {
     let role = ''
 
     if (
-      email === 'admin@example.com' &&
-      password === 'password123'
+      data.email === 'admin@example.com' &&
+      data.password === 'password123'
     ) {
       role = 'admin'
     }
 
     if (
-      email === 'seller@example.com' &&
-      password === 'password123'
+      data.email === 'seller@example.com' &&
+      data.password === 'password123'
     ) {
       role = 'seller'
     }
 
     if (
-      email === 'customer@example.com' &&
-      password === 'password123'
+      data.email === 'customer@example.com' &&
+      data.password === 'password123'
     ) {
       role = 'customer'
     }
 
     if (!role) {
-      setError('Invalid email or password.')
+      setError('root', {
+        type: 'manual',
+        message: 'Invalid email or password.',
+      })
+
       return
     }
 
     const user = {
       id: Date.now(),
-      email,
+      email: data.email,
       role,
     }
 
@@ -52,15 +69,15 @@ function Login() {
 
     if (role === 'admin') {
       navigate('/admin')
+      return
     }
 
     if (role === 'seller') {
       navigate('/seller')
+      return
     }
 
-    if (role === 'customer') {
-      navigate('/')
-    }
+    navigate('/')
   }
 
   return (
@@ -75,52 +92,78 @@ function Login() {
         </p>
 
         <form
-          onSubmit={handleSubmit}
-          className="mt-6 space-y-4"
+          onSubmit={handleSubmit(handleLogin)}
+          noValidate
+          className="mt-6 space-y-5"
         >
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="email"
+              className="mb-1 block text-sm font-medium"
+            >
               Email
             </label>
 
             <input
-              type="email"
-              value={email}
-              onChange={event =>
-                setEmail(event.target.value)
-              }
+              id="email"
+              type="text"
+              {...register('email')}
               placeholder="Enter your email"
-              className="w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500"
+              className={`w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500 ${
+                errors.email
+                  ? 'border-red-500'
+                  : 'border-gray-300'
+              }`}
             />
+
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="password"
+              className="mb-1 block text-sm font-medium"
+            >
               Password
             </label>
 
             <input
+              id="password"
               type="password"
-              value={password}
-              onChange={event =>
-                setPassword(event.target.value)
-              }
+              {...register('password')}
               placeholder="Enter your password"
-              className="w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500"
+              className={`w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500 ${
+                errors.password
+                  ? 'border-red-500'
+                  : 'border-gray-300'
+              }`}
             />
+
+            {errors.password && (
+              <p className="mt-1 text-sm text-red-600">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
-          {error && (
+          {errors.root && (
             <p className="text-sm text-red-600">
-              {error}
+              {errors.root.message}
             </p>
           )}
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Login
+            {isSubmitting
+              ? 'Logging in...'
+              : 'Login'}
           </button>
         </form>
 
@@ -133,9 +176,13 @@ function Login() {
             customer@example.com
           </p>
 
-          <p>seller@example.com</p>
+          <p>
+            seller@example.com
+          </p>
 
-          <p>admin@example.com</p>
+          <p>
+            admin@example.com
+          </p>
 
           <p className="mt-2 text-gray-500">
             Password: password123

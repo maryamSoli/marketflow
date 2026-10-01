@@ -10,22 +10,41 @@ import {
   Typography,
 } from '@mui/material'
 import UserMenu from '../components/navigation/UserMenu'
+import NotificationBell from '../components/navigation/NotificationBell'
 
 const drawerWidth = 240
 
 function SellerLayout() {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+      }}
+    >
       <AppBar
         position="fixed"
         sx={{ zIndex: 1201 }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Toolbar
+          sx={{
+            justifyContent: 'space-between',
+          }}
+        >
           <Typography variant="h6">
             MarketFlow Seller
           </Typography>
 
-          <UserMenu />
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+            }}
+          >
+            <NotificationBell />
+            <UserMenu />
+          </Box>
         </Toolbar>
       </AppBar>
 
