@@ -4,10 +4,8 @@ import {
   Box,
   Button,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
-  MenuItem,
   Snackbar,
   TextField,
   Typography,
@@ -20,21 +18,17 @@ import {
   useUpdateProduct,
 } from '../../queries/useAdminProducts'
 import { useCategories } from '../../queries/useCategories'
+import ProductForm from '../../components/ProductForm'
 
 function AdminProducts() {
   const [search, setSearch] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState(null)
-
-  const [form, setForm] = useState({
-    title: '',
-    price: '',
-    stock: '',
-    category: '',
-  })
+  const [editingProduct, setEditingProduct] =
+    useState(null)
 
   const [message, setMessage] = useState('')
-  const [messageType, setMessageType] = useState('success')
+  const [messageType, setMessageType] =
+    useState('success')
 
   const {
     data,
@@ -45,6 +39,7 @@ function AdminProducts() {
 
   const {
     data: categories = [],
+    isPending: categoriesLoading,
   } = useCategories()
 
   const addProduct = useAddProduct()
@@ -61,34 +56,22 @@ function AdminProducts() {
     }
 
     return products.filter(product =>
-      product.title.toLowerCase().includes(text) ||
-      product.category.toLowerCase().includes(text),
+      product.title
+        .toLowerCase()
+        .includes(text) ||
+      product.category
+        .toLowerCase()
+        .includes(text),
     )
   }, [products, search])
 
   function openAddDialog() {
     setEditingProduct(null)
-
-    setForm({
-      title: '',
-      price: '',
-      stock: '',
-      category: '',
-    })
-
     setDialogOpen(true)
   }
 
   function openEditDialog(product) {
     setEditingProduct(product)
-
-    setForm({
-      title: product.title,
-      price: product.price,
-      stock: product.stock,
-      category: product.category,
-    })
-
     setDialogOpen(true)
   }
 
@@ -101,46 +84,18 @@ function AdminProducts() {
     }
 
     setDialogOpen(false)
+    setEditingProduct(null)
   }
 
-  function handleChange(event) {
-    const { name, value } = event.target
-
-    setForm(prev => ({
-      ...prev,
-      [name]: value,
-    }))
-  }
-
-  function showMessage(text, type = 'success') {
+  function showMessage(
+    text,
+    type = 'success',
+  ) {
     setMessage(text)
     setMessageType(type)
   }
 
-  function handleSubmit(event) {
-    event.preventDefault()
-
-    if (
-      !form.title.trim() ||
-      !form.price ||
-      !form.stock ||
-      !form.category
-    ) {
-      showMessage(
-        'Please fill in all fields.',
-        'error',
-      )
-
-      return
-    }
-
-    const productData = {
-      title: form.title.trim(),
-      price: Number(form.price),
-      stock: Number(form.stock),
-      category: form.category,
-    }
-
+  function handleSubmit(productData) {
     if (editingProduct) {
       updateProduct.mutate(
         {
@@ -149,8 +104,11 @@ function AdminProducts() {
         },
         {
           onSuccess: () => {
-            showMessage('Product updated successfully.')
-            setDialogOpen(false)
+            showMessage(
+              'Product updated successfully.',
+            )
+
+            closeDialog()
           },
 
           onError: mutationError => {
@@ -167,8 +125,11 @@ function AdminProducts() {
 
     addProduct.mutate(productData, {
       onSuccess: () => {
-        showMessage('Product added successfully.')
-        setDialogOpen(false)
+        showMessage(
+          'Product added successfully.',
+        )
+
+        closeDialog()
       },
 
       onError: mutationError => {
@@ -191,7 +152,9 @@ function AdminProducts() {
 
     deleteProduct.mutate(product.id, {
       onSuccess: () => {
-        showMessage('Product deleted successfully.')
+        showMessage(
+          'Product deleted successfully.',
+        )
       },
 
       onError: mutationError => {
@@ -207,7 +170,7 @@ function AdminProducts() {
     {
       field: 'id',
       headerName: 'ID',
-      width: 70,
+      width: 80,
     },
     {
       field: 'title',
@@ -275,8 +238,12 @@ function AdminProducts() {
     },
   ]
 
-  if (isPending) {
-    return <Typography>Loading products...</Typography>
+  if (isPending || categoriesLoading) {
+    return (
+      <Typography>
+        Loading products...
+      </Typography>
+    )
   }
 
   if (isError) {
@@ -293,15 +260,15 @@ function AdminProducts() {
         sx={{
           mb: 3,
           display: 'flex',
-          flexDirection: {
-            xs: 'column',
-            sm: 'row',
-          },
+          justifyContent: 'space-between',
           alignItems: {
             xs: 'stretch',
             sm: 'center',
           },
-          justifyContent: 'space-between',
+          flexDirection: {
+            xs: 'column',
+            sm: 'row',
+          },
           gap: 2,
         }}
       >
@@ -350,8 +317,8 @@ function AdminProducts() {
           initialState={{
             pagination: {
               paginationModel: {
-                pageSize: 10,
                 page: 0,
+                pageSize: 10,
               },
             },
           }}
@@ -365,98 +332,26 @@ function AdminProducts() {
         fullWidth
         maxWidth="sm"
       >
-        <form onSubmit={handleSubmit}>
-          <DialogTitle>
-            {editingProduct
-              ? 'Edit Product'
-              : 'Add Product'}
-          </DialogTitle>
+        <DialogTitle>
+          {editingProduct
+            ? 'Edit Product'
+            : 'Add Product'}
+        </DialogTitle>
 
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Product name"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              margin="normal"
-            />
-
-            <TextField
-              fullWidth
-              label="Price"
-              name="price"
-              type="number"
-              value={form.price}
-              onChange={handleChange}
-              margin="normal"
-              inputProps={{
-                min: 0,
-                step: 0.01,
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="Stock"
-              name="stock"
-              type="number"
-              value={form.stock}
-              onChange={handleChange}
-              margin="normal"
-              inputProps={{
-                min: 0,
-              }}
-            />
-
-            <TextField
-              fullWidth
-              select
-              label="Category"
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              margin="normal"
-            >
-              {categories.map(category => (
-                <MenuItem
-                  key={category}
-                  value={category}
-                >
-                  {category}
-                </MenuItem>
-              ))}
-            </TextField>
-          </DialogContent>
-
-          <DialogActions>
-            <Button
-              onClick={closeDialog}
-              disabled={
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <ProductForm
+              product={editingProduct}
+              categories={categories}
+              onSubmit={handleSubmit}
+              onCancel={closeDialog}
+              loading={
                 addProduct.isPending ||
                 updateProduct.isPending
               }
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={
-                addProduct.isPending ||
-                updateProduct.isPending
-              }
-            >
-              {addProduct.isPending ||
-              updateProduct.isPending
-                ? 'Saving...'
-                : editingProduct
-                  ? 'Update'
-                  : 'Add'}
-            </Button>
-          </DialogActions>
-        </form>
+            />
+          </Box>
+        </DialogContent>
       </Dialog>
 
       <Snackbar
