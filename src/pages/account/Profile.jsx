@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -5,8 +6,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import {
   Alert,
   Button,
-  MenuItem,
-  Select,
   Snackbar,
   TextField,
 } from '@mui/material'
@@ -26,7 +25,6 @@ function Profile() {
   let settings = {
     emailNotifications: true,
     orderUpdates: true,
-    language: 'English',
   }
 
   if (savedSettings) {
@@ -57,7 +55,6 @@ function Profile() {
       address: user?.address || '',
       emailNotifications: settings.emailNotifications,
       orderUpdates: settings.orderUpdates,
-      language: settings.language,
     },
   })
 
@@ -77,7 +74,6 @@ function Profile() {
       JSON.stringify({
         emailNotifications: data.emailNotifications,
         orderUpdates: data.orderUpdates,
-        language: data.language,
       }),
     )
 
@@ -88,6 +84,7 @@ function Profile() {
     return (
       <div className="rounded-lg bg-white p-6 shadow">
         <h1 className="text-2xl font-bold">Profile</h1>
+
         <p className="mt-2 text-gray-600">
           Please log in to view your profile.
         </p>
@@ -98,7 +95,10 @@ function Profile() {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Profile</h1>
+        <h1 className="text-3xl font-bold">
+          Profile
+        </h1>
+
         <p className="mt-2 text-gray-500">
           Manage your personal information and account settings.
         </p>
@@ -192,6 +192,7 @@ function Profile() {
                 <p className="font-medium">
                   Email notifications
                 </p>
+
                 <p className="text-sm text-gray-500">
                   Receive account and promotional emails.
                 </p>
@@ -209,6 +210,7 @@ function Profile() {
                 <p className="font-medium">
                   Order updates
                 </p>
+
                 <p className="text-sm text-gray-500">
                   Receive notifications about your orders.
                 </p>
@@ -220,24 +222,6 @@ function Profile() {
                 {...register('orderUpdates')}
               />
             </label>
-
-            <div className="max-w-sm">
-              <p className="mb-2 font-medium">Language</p>
-
-              <Select
-                fullWidth
-                defaultValue={settings.language}
-                {...register('language')}
-              >
-                <MenuItem value="English">
-                  English
-                </MenuItem>
-
-                <MenuItem value="فارسی">
-                  فارسی
-                </MenuItem>
-              </Select>
-            </div>
           </div>
         </div>
 
@@ -247,7 +231,9 @@ function Profile() {
             variant="contained"
             disabled={isSubmitting}
           >
-            {isSubmitting ? 'Saving...' : 'Save changes'}
+            {isSubmitting
+              ? 'Saving...'
+              : 'Save changes'}
           </Button>
         </div>
       </form>

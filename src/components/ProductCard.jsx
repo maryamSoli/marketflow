@@ -1,8 +1,22 @@
 import { Link } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { getProductQuery } from '../queries/useProduct'
 
 function ProductCard({ product }) {
+  const queryClient = useQueryClient()
+
+  function prefetchProduct() {
+    queryClient.prefetchQuery(
+      getProductQuery(product.id),
+    )
+  }
+
   return (
-    <Link to={`/products/${product.id}`}>
+    <Link
+      to={`/products/${product.id}`}
+      onMouseEnter={prefetchProduct}
+      onFocus={prefetchProduct}
+    >
       <article className="overflow-hidden rounded-lg bg-white shadow transition hover:-translate-y-1 hover:shadow-lg">
         <img
           src={product.thumbnail}

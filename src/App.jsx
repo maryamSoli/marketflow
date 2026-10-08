@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router'
 import CustomerLayout from './layouts/CustomerLayout'
 import DashboardLayout from './layouts/DashboardLayout'
 import SellerLayout from './layouts/SellerLayout'
+import ErrorBoundary from './components/ErrorBoundary'
 
 import Home from './pages/customer/Home'
 import Products from './pages/customer/Products'
@@ -13,6 +14,7 @@ import OrderSuccess from './pages/customer/OrderSuccess'
 import Orders from './pages/customer/Orders'
 import OrderDetails from './pages/customer/OrderDetails'
 import Wishlist from './pages/customer/Wishlist'
+import NotFound from './pages/NotFound'
 
 import Profile from './pages/account/Profile'
 
@@ -30,137 +32,144 @@ import ProtectedRoute from './routes/ProtectedRoute'
 
 function App() {
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={<Login />}
-      />
-
-      <Route element={<CustomerLayout />}>
+    <ErrorBoundary>
+      <Routes>
         <Route
-          path="/"
-          element={<Home />}
+          path="/login"
+          element={<Login />}
         />
 
-        <Route
-          path="/products"
-          element={<Products />}
-        />
+        <Route element={<CustomerLayout />}>
+          <Route
+            path="/"
+            element={<Home />}
+          />
 
-        <Route
-          path="/products/:id"
-          element={<ProductDetails />}
-        />
+          <Route
+            path="/products"
+            element={<Products />}
+          />
 
-        <Route
-          path="/cart"
-          element={<Cart />}
-        />
+          <Route
+            path="/products/:id"
+            element={<ProductDetails />}
+          />
 
-        <Route
-          path="/checkout"
-          element={<Checkout />}
-        />
+          <Route
+            path="/cart"
+            element={<Cart />}
+          />
 
-        <Route
-          path="/order-success"
-          element={<OrderSuccess />}
-        />
+          <Route
+            path="/checkout"
+            element={<Checkout />}
+          />
+
+          <Route
+            path="/order-success"
+            element={<OrderSuccess />}
+          />
+
+          <Route
+            element={
+              <ProtectedRoute
+                allowedRoles={['customer']}
+              />
+            }
+          >
+            <Route
+              path="/orders"
+              element={<Orders />}
+            />
+
+            <Route
+              path="/orders/:id"
+              element={<OrderDetails />}
+            />
+
+            <Route
+              path="/wishlist"
+              element={<Wishlist />}
+            />
+
+            <Route
+              path="/profile"
+              element={<Profile />}
+            />
+          </Route>
+        </Route>
 
         <Route
           element={
             <ProtectedRoute
-              allowedRoles={['customer']}
+              allowedRoles={['admin']}
             />
           }
         >
-          <Route
-            path="/orders"
-            element={<Orders />}
-          />
+          <Route element={<DashboardLayout />}>
+            <Route
+              path="/admin"
+              element={<Dashboard />}
+            />
 
-          <Route
-            path="/orders/:id"
-            element={<OrderDetails />}
-          />
+            <Route
+              path="/admin/products"
+              element={<AdminProducts />}
+            />
 
-          <Route
-            path="/wishlist"
-            element={<Wishlist />}
-          />
+            <Route
+              path="/admin/orders"
+              element={<OrdersAdmin />}
+            />
 
-          <Route
-            path="/profile"
-            element={<Profile />}
-          />
+            <Route
+              path="/admin/users"
+              element={<Users />}
+            />
+
+            <Route
+              path="/admin/profile"
+              element={<Profile />}
+            />
+          </Route>
         </Route>
-      </Route>
 
-      <Route
-        element={
-          <ProtectedRoute
-            allowedRoles={['admin']}
-          />
-        }
-      >
-        <Route element={<DashboardLayout />}>
-          <Route
-            path="/admin"
-            element={<Dashboard />}
-          />
+        <Route
+          element={
+            <ProtectedRoute
+              allowedRoles={['seller']}
+            />
+          }
+        >
+          <Route element={<SellerLayout />}>
+            <Route
+              path="/seller"
+              element={<SellerDashboard />}
+            />
 
-          <Route
-            path="/admin/products"
-            element={<AdminProducts />}
-          />
+            <Route
+              path="/seller/products"
+              element={<SellerProducts />}
+            />
 
-          <Route
-            path="/admin/orders"
-            element={<OrdersAdmin />}
-          />
+            <Route
+              path="/seller/orders"
+              element={<SellerOrders />}
+            />
 
-          <Route
-            path="/admin/users"
-            element={<Users />}
-          />
-
-          <Route
-            path="/admin/profile"
-            element={<Profile />}
-          />
+            <Route
+              path="/seller/profile"
+              element={<Profile />}
+            />
+          </Route>
         </Route>
-      </Route>
 
-      <Route
-        element={
-          <ProtectedRoute
-            allowedRoles={['seller']}
-          />
-        }
-      >
-        <Route element={<SellerLayout />}>
-          <Route
-            path="/seller"
-            element={<SellerDashboard />}
-          />
-
-          <Route
-            path="/seller/products"
-            element={<SellerProducts />}
-          />
-
-          <Route
-            path="/seller/orders"
-            element={<SellerOrders />}
-          />
-
-          <Route
-            path="/seller/profile"
-            element={<Profile />}
-          />
-        </Route>
-      </Route>
-    </Routes>
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
+      </Routes>
+    </ErrorBoundary>
   )
 }
 

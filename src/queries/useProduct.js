@@ -8,3 +8,10 @@ export function useProduct(id) {
     enabled: !!id,
   })
 }
+
+export function getProductQuery(id) {
+  return {
+    queryKey: ['product', id],
+    queryFn: () => getProduct(id),
+  }
+}

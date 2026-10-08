@@ -179,9 +179,9 @@ function ReviewSection({ productId }) {
         !isError &&
         reviews.length > 0 && (
           <div className="space-y-4">
-            {reviews.map(review => (
+            {reviews.map((review, index) => (
               <Box
-                key={review.id}
+                key={`${review.id ?? 'review'}-${review.reviewerEmail ?? 'user'}-${review.date ?? 'date'}-${index}`}
                 sx={{
                   p: 3,
                   borderRadius: 2,
