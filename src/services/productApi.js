@@ -1,3 +1,4 @@
+
 import api from './api'
 
 const STORAGE_KEY = 'marketflowProductChanges'
@@ -47,68 +48,29 @@ function saveChanges(changes) {
   )
 }
 
-function applyLocalChanges(products) {
+function getLocalAddedProducts() {
   const changes = getChanges()
 
-  const deletedIds = new Set(
+  return changes.added || []
+}
+
+function getDeletedIds() {
+  const changes = getChanges()
+
+  return new Set(
     (changes.deleted || []).map(id =>
       Number(id),
     ),
   )
+}
 
-  const updatedProducts = products
-    .filter(
-      product =>
-        !deletedIds.has(
-          Number(product.id),
-        ),
-    )
-    .map(product => {
-      const updated =
-        changes.updated?.[
-          Number(product.id)
-        ] ||
-        changes.updated?.[
-          String(product.id)
-        ]
+function getUpdatedProduct(id) {
+  const changes = getChanges()
 
-      if (!updated) {
-        return product
-      }
-
-      return {
-        ...product,
-        ...updated,
-      }
-    })
-
-  const addedProducts = (
-    changes.added || []
-  ).filter(
-    product =>
-      !deletedIds.has(
-        Number(product.id),
-      ),
+  return (
+    changes.updated?.[id] ||
+    changes.updated?.[String(id)]
   )
-
-  const existingIds = new Set(
-    updatedProducts.map(product =>
-      Number(product.id),
-    ),
-  )
-
-  const localAddedProducts =
-    addedProducts.filter(
-      product =>
-        !existingIds.has(
-          Number(product.id),
-        ),
-    )
-
-  return [
-    ...updatedProducts,
-    ...localAddedProducts,
-  ]
 }
 
 function isLocallyAddedProduct(id) {
@@ -119,6 +81,76 @@ function isLocallyAddedProduct(id) {
     product =>
       Number(product.id) === numericId,
   )
+}
+
+function matchesProductFilters(
+  product,
+  search,
+  category,
+) {
+  if (search) {
+    const searchValue =
+      search.toLowerCase().trim()
+
+    if (
+      !product.title
+        ?.toLowerCase()
+        .includes(searchValue)
+    ) {
+      return false
+    }
+  }
+
+  if (
+    category &&
+    product.category !== category
+  ) {
+    return false
+  }
+
+  return true
+}
+
+function sortProducts(
+  products,
+  sortBy,
+  order,
+) {
+  if (!sortBy) {
+    return products
+  }
+
+  const sorted = [...products]
+
+  if (sortBy === 'price') {
+    sorted.sort((a, b) =>
+      order === 'desc'
+        ? Number(b.price) -
+          Number(a.price)
+        : Number(a.price) -
+          Number(b.price),
+    )
+  }
+
+  if (sortBy === 'title') {
+    sorted.sort((a, b) =>
+      order === 'desc'
+        ? b.title.localeCompare(a.title)
+        : a.title.localeCompare(b.title),
+    )
+  }
+
+  if (sortBy === 'rating') {
+    sorted.sort((a, b) =>
+      order === 'desc'
+        ? Number(b.rating || 0) -
+          Number(a.rating || 0)
+        : Number(a.rating || 0) -
+          Number(b.rating || 0),
+    )
+  }
+
+  return sorted
 }
 
 export async function getProducts({
@@ -155,51 +187,70 @@ export async function getProducts({
     params,
   })
 
-  let products = applyLocalChanges(
-    response.data?.products || [],
+  const changes = getChanges()
+  const deletedIds = getDeletedIds()
+
+  let products = (
+    response.data?.products || []
+  ).filter(
+    product =>
+      !deletedIds.has(
+        Number(product.id),
+      ),
   )
 
-  if (search) {
-    const searchValue =
-      search.toLowerCase().trim()
+  products = products.map(product => {
+    const updated = getUpdatedProduct(
+      product.id,
+    )
 
-    products = products.filter(
+    if (!updated) {
+      return product
+    }
+
+    return {
+      ...product,
+      ...updated,
+    }
+  })
+
+  const localAddedProducts =
+    getLocalAddedProducts().filter(
       product =>
-        product.title
-          ?.toLowerCase()
-          .includes(searchValue),
+        !deletedIds.has(
+          Number(product.id),
+        ) &&
+        matchesProductFilters(
+          product,
+          search,
+          category,
+        ),
     )
+
+  if (skip === 0) {
+    products = [
+      ...products,
+      ...localAddedProducts,
+    ]
   }
 
-  if (category) {
-    products = products.filter(
-      product =>
-        product.category === category,
-    )
-  }
+  products = sortProducts(
+    products,
+    sortBy,
+    order,
+  )
 
-  if (sortBy === 'price') {
-    products = [...products].sort(
-      (a, b) =>
-        order === 'desc'
-          ? b.price - a.price
-          : a.price - b.price,
-    )
-  }
+  const baseTotal = Number(
+    response.data?.total || 0,
+  )
 
-  if (sortBy === 'title') {
-    products = [...products].sort(
-      (a, b) =>
-        order === 'desc'
-          ? b.title.localeCompare(a.title)
-          : a.title.localeCompare(b.title),
-    )
-  }
+  const total =
+    baseTotal + localAddedProducts.length
 
   return {
     ...response.data,
     products,
-    total: products.length,
+    total,
   }
 }
 
@@ -215,17 +266,18 @@ export async function getProduct(id) {
   const numericId = Number(id)
   const changes = getChanges()
 
-  if (
-    changes.deleted.some(
+  const isDeleted =
+    (changes.deleted || []).some(
       deletedId =>
         Number(deletedId) === numericId,
     )
-  ) {
+
+  if (isDeleted) {
     return null
   }
 
   const localProduct =
-    changes.added.find(
+    (changes.added || []).find(
       product =>
         Number(product.id) === numericId,
     )
@@ -280,22 +332,17 @@ export async function updateProduct(
 ) {
   const numericId = Number(id)
 
-  let serverProduct = {}
-
   if (!isLocallyAddedProduct(numericId)) {
-    const response = await api.put(
+    await api.put(
       `/products/${numericId}`,
       product,
     )
-
-    serverProduct = response.data || {}
   }
 
   const changes = getChanges()
 
   const updatedProduct = {
     ...product,
-    ...serverProduct,
     id: numericId,
   }
 
@@ -340,13 +387,12 @@ export async function deleteProduct(id) {
   delete changes.updated[numericId]
   delete changes.updated[String(numericId)]
 
-  const alreadyDeleted =
-    changes.deleted.some(
+  if (
+    !changes.deleted.some(
       deletedId =>
         Number(deletedId) === numericId,
     )
-
-  if (!alreadyDeleted) {
+  ) {
     changes.deleted.push(numericId)
   }
 
